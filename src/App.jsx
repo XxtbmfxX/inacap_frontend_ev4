@@ -1,91 +1,116 @@
-// src/App.js
-import React, { useState } from 'react';
-import { 
-  Box, 
-  Button, 
-  FormControl, 
-  FormLabel, 
-  Input, 
-  Stack, 
-  Table, 
-  Tbody, 
-  Td, 
-  Th, 
-  Thead, 
-  Tr 
-} from '@chakra-ui/react';
+import React, { useRef, useState } from "react";
+import { Box, Button, Input, Stack, Text, Alert, AlertIcon } from "@chakra-ui/react";
+import { v4 as uuidv4 } from "uuid";
+import Post from "./components/Post";
 
 const App = () => {
-  const [items, setItems] = useState([]);
-  const [itemName, setItemName] = useState('');
-  const [editingIndex, setEditingIndex] = useState(null);
+  const [postIts, setPostIts] = useState([
+    {
+      id: uuidv4(),
+      title: "Comprar arroz",
+      description: " dos de agua por una de arroz ",
+    },
+  ]);
+  const [error, setError] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+
+  const titleRef = useRef();
+  const descriptionRef = useRef();
+
+  const handleDeleteItem = (id) => {
+    setPostIts(postIts.filter((post) => post.id !== id));
+  };
 
   const handleAddItem = () => {
-    if (editingIndex !== null) {
-      const updatedItems = [...items];
-      updatedItems[editingIndex] = itemName;
-      setItems(updatedItems);
-      setEditingIndex(null);
-    } else {
-      setItems([...items, itemName]);
+    const title = titleRef.current.value;
+    const description = descriptionRef.current.value;
+
+    if (!description.trim()) {
+      setError("La descripción es obligatoria");
+      return;
     }
-    setItemName('');
+
+    setError(null);
+
+    const newPostIt = {
+      id: uuidv4(),
+      title: title,
+      description: description,
+    };
+
+    setPostIts([...postIts, newPostIt]);
+
+    titleRef.current.value = "";
+    descriptionRef.current.value = "";
   };
 
-  const handleEditItem = (index) => {
-    setItemName(items[index]);
-    setEditingIndex(index);
+  const handleUpdateItem = () => {
+    const title = titleRef.current.value;
+    const description = descriptionRef.current.value;
+
+    if (!description.trim()) {
+      setError("La descripción es obligatoria");
+      return;
+    }
+
+    setError(null);
+
+    setPostIts(
+      postIts.map((post) =>
+        post.id === editingId
+          ? { ...post, title, description }
+          : post
+      )
+    );
+
+    titleRef.current.value = "";
+    descriptionRef.current.value = "";
+    setEditingId(null);
   };
 
-  const handleDeleteItem = (index) => {
-    setItems(items.filter((_, i) => i !== index));
+  const startEditing = (id) => {
+    const post = postIts.find((post) => post.id === id);
+    titleRef.current.value = post.title;
+    descriptionRef.current.value = post.description;
+    setEditingId(id);
   };
 
   return (
-    <Box p={4}>
-      <Stack spacing={4}>
-        <FormControl>
-          <FormLabel>Item Name</FormLabel>
-          <Input 
-            value={itemName} 
-            onChange={(e) => setItemName(e.target.value)} 
-          />
-        </FormControl>
-        <Button onClick={handleAddItem}>
-          {editingIndex !== null ? 'Update Item' : 'Add Item'}
+    <Box
+      display={"grid"}
+      p={4}
+      w="100%"
+      h="100vh"
+      bgGradient="linear(to-b, gray.500, blue.600)"
+    >
+      <Box p={4}>
+        <label>Titulo</label>
+        <Input name="title" ref={titleRef} />
+        <label>Descripción</label>
+        <Input name="description" ref={descriptionRef} />
+        {error && (
+          <Alert status="error" my={4}>
+            <AlertIcon />
+            {error}
+          </Alert>
+        )}
+        <Button my={10} onClick={editingId ? handleUpdateItem : handleAddItem}>
+          {editingId ? "Actualizar Post It" : "Agregar Post It"}
         </Button>
-      </Stack>
-      <Box mt={6}>
-        <Table variant="simple">
-          <Thead>
-            <Tr>
-              <Th>Item</Th>
-              <Th>Actions</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {items.map((item, index) => (
-              <Tr key={index}>
-                <Td>{item}</Td>
-                <Td>
-                  <Button 
-                    mr={2} 
-                    onClick={() => handleEditItem(index)}
-                  >
-                    Edit
-                  </Button>
-                  <Button 
-                    colorScheme="red" 
-                    onClick={() => handleDeleteItem(index)}
-                  >
-                    Delete
-                  </Button>
-                </Td>
-              </Tr>
-            ))}
-          </Tbody>
-        </Table>
       </Box>
+
+      <Stack spacing={4}>
+        {postIts.map((item) => (
+          <Post
+            key={item.id}
+            id={item.id}
+            title={item.title}
+            description={item.description}
+            handleDeleteItem={handleDeleteItem}
+            startEditing={startEditing}
+          />
+        ))}
+      </Stack>
     </Box>
   );
 };
